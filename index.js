@@ -1,6 +1,9 @@
 import express from "express";
+import { PrismaClient } from "@prisma/client";
+
 const app = express();
 const port = 3000;
+const prisma = new PrismaClient();
 
 app.use(express.json());
 
@@ -14,56 +17,59 @@ function errorHandler(err, req, res, next) {
   res.status(500).json({ error: "Something went wrong!" });
 }
 
-app.use(express.json());
-
 app.use(logger);
 
-const memes = [
-  { id: 1, "title": "Coding Cat",
-  "url": "https://i.imgur.com/codingcat.jpg" },
-  { id: 2, title: "Distracted Boyfriend", url: "https://i.imgur.com/example1.jpg" },
-  { id: 3, title: "Success Kid", url: "https://i.imgur.com/example2.jpg" }
-];
+// The in-memory array is now obsolete and has been removed.
 
 app.get("/", (req, res) => {
-    res.send("Hello World");
+  res.send("Hello World");
 });
 
-
-app.get("/memes", (req, res) => {
+app.get("/memes", async (req, res, next) => {
+  try {
+    const memes = await prisma.meme.findMany({
+      include: { user: true },
+    });
     res.json(memes);
+  } catch (error) {
+    next(error); // Pass the error to the errorHandler middleware
+  }
 });
 
-app.post("/memes", (req, res) => {
-    const { title, url } = req.body || {}; 
+app.post("/memes", async (req, res, next) => {
+  try {
+    const { title, url, userId } = req.body || {};
 
-    if (!title || !url){
-        return res.status(400).json({ error: "Title and Url are required" });
+    if (!title || !url || !userId) {
+      return res.status(400).json({ error: "Title, Url, and userId are required" });
     }
-    
-    const newMeme = { id: memes.length + 1, title, url };
-    memes.push(newMeme);
 
-    console.log(memes);
+    const newMeme = await prisma.meme.create({
+      data: {
+        title,
+        url,
+        userId: parseInt(userId), // Ensure userId is an integer
+      },
+    });
+
+    console.log(newMeme);
 
     res.status(201).json(newMeme);
-});
-
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+  } catch (error) {
+    next(error); // Pass the error to the errorHandler middleware
+  }
 });
 
 app.get("/error-test", (req, res, next) => {
   try {
     throw new Error("Test error");
   } catch (err) {
-    next(err); 
+    next(err);
   }
 });
-
 
 app.use(errorHandler);
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+  console.log(`Example app listening on port ${port}`);
 });

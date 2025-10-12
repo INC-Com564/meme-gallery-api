@@ -1,11 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-
-app.get("/memes", async (req, res) => {
-  const memes = await prisma.meme.findMany({ include: { user: true } });
-  res.json(memes);
-});
-
 
 async function main() {
   const user = await prisma.user.create({
