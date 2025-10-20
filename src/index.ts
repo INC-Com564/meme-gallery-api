@@ -38,8 +38,6 @@ function errorHandler(err: any, _req: Request, res: Response, _next: NextFunctio
   res.status(500).json({ error: "Something went wrong!" });
 }
 
-
-
 export default app;
 
 if (process.env.NODE_ENV !== "test") {
