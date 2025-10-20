@@ -4,3 +4,9 @@ export interface Meme {
   url: string;
   userId: number;
 }
+
+export enum Category {
+  Funny = "Funny",
+  Political = "Political",
+  Other = "Other",
+}

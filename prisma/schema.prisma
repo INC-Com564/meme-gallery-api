@@ -14,24 +14,35 @@ generator client {
 }
 
 model User {
-  id     Int     @id @default(autoincrement())
-  username String @unique
+  id       Int             @id @default(autoincrement())
+  username String          @unique
   password String
-  memes   Meme[]
-  likes UserLikesMeme[]
+  memes    Meme[]
+  likes    UserLikesMeme[]
 }
+
 model UserLikesMeme {
   id     Int  @id @default(autoincrement())
   user   User @relation(fields: [userId], references: [id])
   meme   Meme @relation(fields: [memeId], references: [id])
   userId Int
   memeId Int
+
+  @@unique([userId, memeId])
 }
+
+enum Category {
+  CLASSIC
+  DANK
+  WHOLESOME
+}
+
 model Meme {
-  id     Int    @id @default(autoincrement())
-  title  String
-  url    String
-  user   User   @relation(fields: [userId], references: [id])
-  userId Int
-  likes UserLikesMeme[]
+  id       Int             @id @default(autoincrement())
+  title    String
+  url      String
+  userId   Int
+  user     User            @relation(fields: [userId], references: [id])
+  likes    UserLikesMeme[]
+  category Category        @default(CLASSIC)
 }

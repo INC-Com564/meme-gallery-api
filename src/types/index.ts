@@ -17,3 +17,9 @@ export interface Like {
   userId: number;
   memeId: number;
 }
+
+export enum Category {
+  CLASSIC = "CLASSIC",
+  DANK = "DANK",
+  WHOLESOME = "WHOLESOME"
+}

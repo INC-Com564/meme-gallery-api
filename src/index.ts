@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
 import Joi from "joi";
 import { getMemes, createMeme, getMemeById, updateMeme, deleteMeme } from './controllers/memeController';
-import memeRoutes from "./routes/memeRoutes.js";
+import memeRoutes from "./routes/memeRoutes";
 import { prisma } from './prisma';
+import { authenticateToken } from "./middleware/auth"; 
 
 declare global {
   namespace Express {
@@ -15,7 +15,7 @@ declare global {
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-// const prisma = new PrismaClient();
+
 const likeSchema = Joi.object({
   userId: Joi.number().required()
 });
@@ -25,10 +25,8 @@ const memeSchema = Joi.object({
 });
 
 app.use(express.json());
-
+app.use(logger);
 app.use("/memes", memeRoutes);
-
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 function logger(req: Request, _res: Response, next: NextFunction) {
   console.log(`${req.method} ${req.url} at ${new Date().toISOString()}`);
@@ -40,7 +38,7 @@ function errorHandler(err: any, _req: Request, res: Response, _next: NextFunctio
   res.status(500).json({ error: "Something went wrong!" });
 }
 
-app.use(logger);
+
 
 export default app;
 
@@ -70,22 +68,7 @@ app.put('/memes/:id', updateMeme);
 
 app.delete('/memes/:id', deleteMeme);
 
-function authenticateToken(req: Request, res: Response, next: NextFunction) {
-  const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing token" });
-  }
 
-  const token = auth.split(" ")[1];
-  
-  const userId = Number(token);
-  if (Number.isNaN(userId)) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-
-  req.user = { userId };
-  next();
-}
 
 app.post("/memes/:id/like", authenticateToken, async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -117,17 +100,4 @@ app.post("/memes/:id/like", authenticateToken, async (req: Request, res: Respons
 
 app.use(errorHandler);
 
-export const addMeme = async (request: Request, response: Response) => {
 
- const { title, url } = request.body;
- const { error } = memeSchema.validate(request.body);
- if (error) {
- throw new Error(error?.details[0]?.message);
- }
- const newMeme = await prisma.meme.create({
- // @ts-ignore
- data: { title, url, userId: parseInt(request.user.userId) } as Meme, // use authenticated userID
- });
- response.status(201).json(newMeme);
-
-};
