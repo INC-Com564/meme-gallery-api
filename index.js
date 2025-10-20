@@ -1,11 +1,25 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
+import Joi from 'joi';
 
 const app = express();
 const port = 3000;
 const prisma = new PrismaClient();
+const likeSchema = Joi.object({// *optional
+  userId: Joi.number().required()
+});
 
 app.use(express.json());
+
+export default app;
+
+
+if (process.env.NODE_ENV !== "test") {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
+  });
+}
 
 function logger(req, res, next) {
   console.log(`${req.method} ${req.url} at ${new Date().toISOString()}`);
@@ -72,4 +86,27 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
+});
+app.post("/memes/:id/like", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { error } = likeSchema.validate({ userId: req.user.userId }); // *optional
+  if (error) return res.status(400).json({ error: error.details[0].message }); // *optional
+
+  try {
+    const existing = await prisma.userLikesMeme.findUnique({
+      where: { userId_memeId: { userId: req.user.userId, memeId: parseInt(id) } }
+    });
+
+    if (existing) {
+      await prisma.userLikesMeme.delete({ where: { id: existing.id } });
+      return res.json({ message: "Meme unliked" });
+    } else {
+      await prisma.userLikesMeme.create({
+        data: { userId: req.user.userId, memeId: parseInt(id) }
+      });
+      return res.json({ message: "Meme liked" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
