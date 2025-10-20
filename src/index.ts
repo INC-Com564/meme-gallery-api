@@ -1,13 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
 import Joi from "joi";
-
-export interface Meme {
-  id?: number;
-  title: string;
-  url: string;
-  userId?: number;
-}
+import { getMemes, createMeme, getMemeById, updateMeme, deleteMeme } from './controllers/memeController';
+import memeRoutes from "./routes/memeRoutes.js";
+import { prisma } from './prisma';
 
 declare global {
   namespace Express {
@@ -19,7 +15,7 @@ declare global {
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 const likeSchema = Joi.object({
   userId: Joi.number().required()
 });
@@ -29,6 +25,10 @@ const memeSchema = Joi.object({
 });
 
 app.use(express.json());
+
+app.use("/memes", memeRoutes);
+
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
 function logger(req: Request, _res: Response, next: NextFunction) {
   console.log(`${req.method} ${req.url} at ${new Date().toISOString()}`);
@@ -54,40 +54,9 @@ app.get("/", (_req: Request, res: Response) => {
   res.send("Hello World");
 });
 
-app.get("/memes", async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const memes = await prisma.meme.findMany({
-      include: { user: true },
-    });
-    res.json(memes);
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post("/memes", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { title, url, userId } = req.body || {};
-
-    if (!title || !url || !userId) {
-      return res.status(400).json({ error: "Title, Url, and userId are required" });
-    }
-
-    const newMeme = await prisma.meme.create({
-      data: {
-        title,
-        url,
-        userId: parseInt(userId, 10),
-      },
-    });
-
-    console.log(newMeme);
-
-    res.status(201).json(newMeme);
-  } catch (error) {
-    next(error);
-  }
-});
+app.get('/memes', getMemes);
+app.post('/memes', createMeme);
+app.get('/memes/:id', getMemeById);
 
 app.get("/error-test", (_req: Request, _res: Response, next: NextFunction) => {
   try {
@@ -97,6 +66,9 @@ app.get("/error-test", (_req: Request, _res: Response, next: NextFunction) => {
   }
 });
 
+app.put('/memes/:id', updateMeme);
+
+app.delete('/memes/:id', deleteMeme);
 
 function authenticateToken(req: Request, res: Response, next: NextFunction) {
   const auth = req.headers.authorization;
@@ -148,29 +120,14 @@ app.use(errorHandler);
 export const addMeme = async (request: Request, response: Response) => {
 
  const { title, url } = request.body;
-
-
-
  const { error } = memeSchema.validate(request.body);
-
  if (error) {
-
  throw new Error(error?.details[0]?.message);
-
  }
-
-
-
  const newMeme = await prisma.meme.create({
-
  // @ts-ignore
-
  data: { title, url, userId: parseInt(request.user.userId) } as Meme, // use authenticated userID
-
  });
-
-
-
  response.status(201).json(newMeme);
 
 };
