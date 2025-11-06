@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
-import { Meme } from '../types/index';
+import { Meme } from '../types/ExportIndex';
 
 let memes: Meme[] = [
   { id: 1, title: 'Distracted Boyfriend', url: 'https://i.imgur.com/example1.jpg' }
